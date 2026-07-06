@@ -8,6 +8,9 @@
 </head>
 <body>
 
+    <div id="flash-correct" class="flash-layer-feedback">✅</div>
+    <div id="flash-incorrect" class="flash-layer-feedback">❌</div>
+
     <div id="splash-screen" class="splash-layer">
         <div class="splash-content animate-pop">
             <h1 class="bounce-title">LAS 5 VOCALES</h1>
@@ -31,8 +34,17 @@
             
             <div class="kid-keyboard" id="kid-keyboard"></div>
             
+            <div class="selector-container-group">
+                <span class="control-label">🎯 Elige cómo jugar:</span>
+                <select id="game-mode-selector" class="select-infantil" onchange="AudioSynth.play('pop')">
+                    <option value="aleatorio">🔀 Modo Mezclado (Ambos)</option>
+                    <option value="vocal">🔤 Adivina la Vocal ("¿Con qué empieza?")</option>
+                    <option value="imagen">🖼️ Adivina la Imagen ("¿Cuál empieza con?")</option>
+                </select>
+            </div>
+
             <div class="difficulty-slider-container">
-                <span class="slider-label">Dificultad:</span>
+                <span class="slider-label">👶 Nivel de Reto:</span>
                 <div class="slider-wrapper">
                     <span class="emoji-indicator left">👶 Fácil</span>
                     <input type="range" id="difficulty-range" min="0" max="1" value="0" oninput="cambiarDificultadSlider(this.value)">
@@ -48,24 +60,24 @@
         <header class="game-header">
             <button class="btn-icon" onclick="toggleConfig()">⚙️</button>
             <div class="progress-container">
-                <span id="progress-text">1 / 10</span>
+                <span id="progress-text">0% Completado</span>
                 <div class="progress-bar"><div id="progress-fill"></div></div>
             </div>
             <div class="stars-counter">⭐ <span id="stars-count">0</span></div>
         </header>
 
         <main class="game-body">
-            <h2 id="game-question-text" class="question-text">¿Con qué vocal empieza?</h2>
+            <h2 id="game-question-text" class="question-text-huge">¿Con qué vocal empieza?</h2>
             
             <div id="mode-1-container" class="game-layout hidden">
-                <div class="main-image-frame">
+                <div class="main-image-frame-square">
                     <img id="m1-target-img" src="" alt="Pregunta">
                 </div>
                 <div id="m1-options" class="options-grid-vowels"></div>
             </div>
 
             <div id="mode-2-container" class="game-layout hidden">
-                <div id="m2-options" class="options-grid-images"></div>
+                <div id="m2-options" class="options-grid-images-square"></div>
             </div>
         </main>
     </section>
@@ -75,7 +87,7 @@
             <h2 class="congrats-title">¡EXCELENTE CONTINÚA, <span id="player-congrats-name"></span>!</h2>
             <div class="trophy-room">🏆</div>
             <div class="final-stars" id="final-stars-container"></div>
-            <p id="reward-message">¡Ganaste un trofeo por tu esfuerzo!</p>
+            <p id="reward-message">¡Tu esfuerzo te dio un hermoso trofeo!</p>
             <button class="btn-main" onclick="siguienteNivelDinamico()">CONTINUAR ➡️</button>
         </div>
     </section>

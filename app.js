@@ -1,4 +1,4 @@
-// BANCO DE DATOS EXACTO
+// BANCO DE DATOS EXACTO Y COMPLETO
 const BANCO_VOCALES = {
     A: {
         facil: ['abeja', 'aguila', 'ala', 'almohada', 'ambulancia', 'angel', 'anillo', 'araña', 'arbol', 'auto', 'avion'],
@@ -24,7 +24,8 @@ const BANCO_VOCALES = {
 
 let gameState = {
     playerName: "",
-    dificultad: "facil", // 'facil' o 'dificil'
+    dificultad: "facil", 
+    modoJuegoSeleccionado: "aleatorio", 
     currentQuestionIndex: 0,
     totalQuestions: 10,
     score: 0,
@@ -32,7 +33,6 @@ let gameState = {
     settings: { music: true, sfx: true, voice: true }
 };
 
-// MOTOR DE AUDIO SINTETIZADO (Para los efectos controlados de fondo)
 const AudioSynth = {
     ctx: null,
     init() { if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
@@ -50,8 +50,8 @@ const AudioSynth = {
                 gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.1);
                 osc.start(); osc.stop(this.ctx.currentTime + 0.1);
             } else if(type === 'correcto') {
-                osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); // C5
-                osc.frequency.setValueAtTime(659.25, this.ctx.currentTime + 0.1); // E5
+                osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); 
+                osc.frequency.setValueAtTime(659.25, this.ctx.currentTime + 0.1); 
                 gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
                 gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.3);
                 osc.start(); osc.stop(this.ctx.currentTime + 0.3);
@@ -73,7 +73,6 @@ window.addEventListener('DOMContentLoaded', () => {
     simularCargaSplash();
 });
 
-// SIMULACIÓN DE CARGA EN SPLASH DE ENTRADA
 function simularCargaSplash() {
     let progreso = 0;
     const fill = document.getElementById('loading-fill');
@@ -90,17 +89,14 @@ function simularCargaSplash() {
             if(btn) btn.classList.remove('hidden');
         }
         if(fill) fill.style.width = `${progreso}%`;
-    }, 150);
+    }, 120);
 }
 
-// CORRECCIÓN TOTAL DEL PANTALLAZO BLANCO
 function iniciarDesdeSplash() {
     AudioSynth.init();
     document.getElementById('splash-screen').style.display = 'none';
-    
     const welcomeScreen = document.getElementById('screen-welcome');
     welcomeScreen.classList.add('active');
-    
     document.body.style.background = varString('--bg-facil');
     playVoice('hola');
 }
@@ -139,7 +135,6 @@ function evaluarBotonInicio() {
     document.getElementById('btn-start').classList.toggle('locked', gameState.playerName.trim().length < 2);
 }
 
-// CONTROL DEL SLIDER CON CAMBIO DINÁMICO DE COLOR DE FONDO
 function cambiarDificultadSlider(value) {
     gameState.dificultad = (value == 0) ? "facil" : "dificil";
     document.body.style.background = (value == 0) ? varString('--bg-facil') : varString('--bg-dificil');
@@ -147,10 +142,10 @@ function cambiarDificultadSlider(value) {
 }
 function varString(v) { return getComputedStyle(document.documentElement).getPropertyValue(v); }
 
-// CONSTRUCCIÓN E INTERCAMBIO TOTAL DE RUTAS EN LOS MÓDULOS DE DIFICULTAD
 function construirPartida() {
     let poolCompleto = [];
     const vocales = ['A', 'E', 'I', 'O', 'U'];
+    gameState.modoJuegoSeleccionado = document.getElementById('game-mode-selector').value;
 
     vocales.forEach(v => {
         BANCO_VOCALES[v][gameState.dificultad].forEach(item => {
@@ -159,14 +154,18 @@ function construirPartida() {
     });
 
     poolCompleto.sort(() => Math.random() - 0.5);
-    const numPreguntas = 10; 
     gameState.playlist = [];
 
-    for (let i = 0; i < numPreguntas; i++) {
+    for (let i = 0; i < 10; i++) {
         let itemActual = poolCompleto[i % poolCompleto.length];
-        let modoPregunta = Math.random() > 0.5 ? 1 : 2; 
+        let modoPregunta = 1; 
+        if (gameState.modoJuegoSeleccionado === "aleatorio") {
+            modoPregunta = Math.random() > 0.5 ? 1 : 2;
+        } else if (gameState.modoJuegoSeleccionado === "imagen") {
+            modoPregunta = 2;
+        }
 
-        if (modoPregunta === 1) {
+        if (modoPregunta === 1) { 
             let opcionesLetras = [itemActual.vowel];
             while (opcionesLetras.length < 3) {
                 let rVocal = vocales[Math.floor(Math.random() * 5)];
@@ -174,7 +173,7 @@ function construirPartida() {
             }
             opcionesLetras.sort(() => Math.random() - 0.5);
             gameState.playlist.push({ modo: 1, target: itemActual, options: opcionesLetras, correct: itemActual.vowel });
-        } else {
+        } else { 
             let opcionesImagenes = [itemActual];
             while (opcionesImagenes.length < 3) {
                 let rItem = poolCompleto[Math.floor(Math.random() * poolCompleto.length)];
@@ -203,7 +202,7 @@ function iniciarJuego() {
         bgM.volume = 0.2; bgM.play().catch(()=>{});
     }
     playVoice('vamos_a_jugar');
-    setTimeout(presentarPregunta, 1000);
+    setTimeout(presentarPregunta, 800);
 }
 
 function presentarPregunta() {
@@ -212,8 +211,10 @@ function presentarPregunta() {
         return;
     }
 
-    document.getElementById('progress-text').textContent = `${gameState.currentQuestionIndex + 1} / ${gameState.totalQuestions}`;
-    document.getElementById('progress-fill').style.width = `${(gameState.currentQuestionIndex / gameState.totalQuestions) * 100}%`;
+    // Progreso dinámico elástico
+    let porcentajeProgreso = Math.round((gameState.currentQuestionIndex / gameState.totalQuestions) * 100);
+    document.getElementById('progress-text').textContent = `Progreso: ${porcentajeProgreso}%`;
+    document.getElementById('progress-fill').style.width = `${porcentajeProgreso}%`;
     document.getElementById('stars-count').textContent = gameState.score;
 
     const preguntaActual = gameState.playlist[gameState.currentQuestionIndex];
@@ -223,7 +224,6 @@ function presentarPregunta() {
         document.getElementById('mode-1-container').classList.remove('hidden');
         document.getElementById('mode-2-container').classList.add('hidden');
 
-        // URL CORREGIDA: /assets/images/Vocal/dificultad/nombre.png
         document.getElementById('m1-target-img').src = `assets/images/${preguntaActual.target.vowel}/${preguntaActual.target.pathFolder}/${preguntaActual.target.name}.png`;
         
         const containerOpts = document.getElementById('m1-options');
@@ -254,6 +254,20 @@ function presentarPregunta() {
     }
 }
 
+// CORRECCIÓN TOTAL DE DISPARO DE CAPAS
+function dispararFeedbackFlash(esCorrecto) {
+    const layerId = esCorrecto ? 'flash-correct' : 'flash-incorrect';
+    const layer = document.getElementById(layerId);
+    
+    // Forzar render visible antes de la animación
+    layer.classList.add('show-feedback');
+    
+    // Removerlo limpiamente después del efecto visual
+    setTimeout(() => {
+        layer.classList.remove('show-feedback');
+    }, 900);
+}
+
 function procesarRespuesta(seleccion, elementoDom) {
     const preguntaActual = gameState.playlist[gameState.currentQuestionIndex];
     document.querySelectorAll('.vowel-option, .image-option').forEach(el => el.style.pointerEvents = 'none');
@@ -262,30 +276,37 @@ function procesarRespuesta(seleccion, elementoDom) {
         gameState.score++;
         elementoDom.classList.add('correct-flash');
         AudioSynth.play('correcto');
+        dispararFeedbackFlash(true); // Activa el Check ✅
         playVoice('muy_bien');
     } else {
         elementoDom.classList.add('incorrect-flash');
         AudioSynth.play('incorrecto');
+        dispararFeedbackFlash(false); // Activa la X ❌
         playVoice('intenta_otra_vez');
     }
 
     gameState.currentQuestionIndex++;
-    setTimeout(presentarPregunta, 2000);
+    setTimeout(presentarPregunta, 1300);
 }
 
 function finalizarJuego() {
-    document.getElementById('screen-game').classList.remove('active');
-    document.getElementById('screen-reward').classList.add('active');
-    document.getElementById('player-congrats-name').textContent = gameState.playerName;
+    document.getElementById('progress-text').textContent = `Progreso: 100%`;
+    document.getElementById('progress-fill').style.width = `100%`;
 
-    const starsContainer = document.getElementById('final-stars-container');
-    starsContainer.innerHTML = "";
-    let estrellas = gameState.score >= 8 ? 3 : (gameState.score >= 5 ? 2 : 1);
+    setTimeout(() => {
+        document.getElementById('screen-game').classList.remove('active');
+        document.getElementById('screen-reward').classList.add('active');
+        document.getElementById('player-congrats-name').textContent = gameState.playerName;
 
-    for(let i=0; i<estrellas; i++) {
-        starsContainer.innerHTML += "<span style='font-size:3.5rem; margin:0 4px;'>⭐</span>";
-    }
-    playVoice('excelente');
+        const starsContainer = document.getElementById('final-stars-container');
+        starsContainer.innerHTML = "";
+        let estrellas = gameState.score >= 8 ? 3 : (gameState.score >= 5 ? 2 : 1);
+
+        for(let i=0; i<estrellas; i++) {
+            starsContainer.innerHTML += "<span style='font-size:3.5rem; margin:0 4px;'>⭐</span>";
+        }
+        playVoice('excelente');
+    }, 600);
 }
 
 function siguienteNivelDinamico() {
@@ -335,6 +356,7 @@ function reiniciarProgreso() {
     gameState.playerName = "";
     document.getElementById('name-display').textContent = "...";
     document.getElementById('difficulty-range').value = 0;
+    document.getElementById('game-mode-selector').value = "aleatorio";
     gameState.dificultad = "facil";
     document.body.style.background = varString('--bg-facil');
     evaluarBotonInicio();
