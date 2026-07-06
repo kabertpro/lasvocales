@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Las 5 Vocales - Colección Silabín</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <section id="screen-welcome" class="screen active">
+        <div class="card-welcome animate-pop">
+            <h1>LAS 5 VOCALES</h1>
+            <p class="subtitle">Colección Silabín</p>
+            
+            <div class="name-display" id="name-display">Escribe tu nombre...</div>
+            
+            <div class="kid-keyboard" id="kid-keyboard"></div>
+            
+            <div class="setup-row">
+                <button id="btn-dif-facil" class="btn-toggle active" onclick="setDificultad('facil')">Fácil</button>
+                <button id="btn-dif-dificil" class="btn-toggle" onclick="setDificultad('dificil')">Difícil</button>
+            </div>
+
+            <button id="btn-start" class="btn-main locked" onclick="iniciarJuego()">¡VAMOS A JUGAR! 🚀</button>
+        </div>
+    </section>
+
+    <section id="screen-game" class="screen">
+        <header class="game-header">
+            <button class="btn-icon" onclick="toggleConfig()">⚙️</button>
+            <div class="progress-container">
+                <span id="progress-text">1 / 10</span>
+                <div class="progress-bar"><div id="progress-fill"></div></div>
+            </div>
+            <div class="stars-counter">⭐ <span id="stars-count">0</span></div>
+        </header>
+
+        <main class="game-body">
+            <h2 id="game-question-text" class="question-text">¿Con qué vocal empieza?</h2>
+            
+            <div id="mode-1-container" class="game-layout">
+                <div class="main-image-frame">
+                    <img id="m1-target-img" src="" alt="Pregunta">
+                </div>
+                <div id="m1-options" class="options-grid-vowels"></div>
+            </div>
+
+            <div id="mode-2-container" class="game-layout hidden">
+                <div id="m2-options" class="options-grid-images"></div>
+            </div>
+        </main>
+    </section>
+
+    <section id="screen-reward" class="screen">
+        <div class="card-reward animate-pop">
+            <h2>¡LO LOGRASTE, <span id="player-congrats-name"></span>!</h2>
+            <div class="final-stars" id="final-stars-container"></div>
+            <p id="reward-message">¡Eres increíble!</p>
+            <button class="btn-main" onclick="regresarAlMenu()">Jugar de Nuevo 🔄</button>
+        </div>
+    </section>
+
+    <div id="modal-config" class="modal hidden">
+        <div class="modal-content animate-pop">
+            <button class="btn-close" onclick="toggleConfig()">✖</button>
+            <h3>Configuración</h3>
+            <div class="config-grid">
+                <label>Música: <input type="checkbox" id="cfg-music" checked onchange="updateSettings()"></label>
+                <label>Efectos: <input type="checkbox" id="cfg-sfx" checked onchange="updateSettings()"></label>
+                <label>Voz: <input type="checkbox" id="cfg-voice" checked onchange="updateSettings()"></label>
+                <label>Pantalla Completa: <button onclick="toggleFullscreen()" class="btn-small">Conmutar</button></label>
+            </div>
+            <button class="btn-secondary" onclick="reiniciarProgreso()">Reiniciar Todo</button>
+        </div>
+    </div>
+
+    <button class="btn-credits-trigger" onclick="toggleCredits()">ⓘ</button>
+
+    <div id="modal-credits" class="modal hidden">
+        <div class="modal-content animate-pop">
+            <button class="btn-close" onclick="toggleCredits()">✖</button>
+            <h3>Las 5 Vocales</h3>
+            <p><strong>Colección:</strong> SILABÍN</p>
+            <p><strong>Desarrollo:</strong> Kabert Studio - by LMKE</p>
+            <p><strong>Desarrollador:</strong> Luis Miguel Kapa Escobar</p>
+            <p><a href="https://wa.me/59165665429" target="_blank" class="wa-link">💬 Contactar por WhatsApp</a></p>
+            <hr>
+            <p class="educational-msg"><em>“Aprender jugando ayuda a los niños a desarrollar la atención, la memoria y el amor por la lectura desde sus primeros años.”</em></p>
+        </div>
+    </div>
+
+    <audio id="bg-music" loop src="assets/audio/vamos_a_jugar.mp3"></audio>
+    <audio id="voice-player"></audio>
+    <audio id="sfx-player"></audio>
+
+    <script src="app.js"></script>
+</body>
+</html>
