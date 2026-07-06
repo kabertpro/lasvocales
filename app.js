@@ -1,4 +1,3 @@
-// BANCO DE DATOS EXACTO Y COMPLETO
 const BANCO_VOCALES = {
     A: {
         facil: ['abeja', 'aguila', 'ala', 'almohada', 'ambulancia', 'angel', 'anillo', 'araña', 'arbol', 'auto', 'avion'],
@@ -211,7 +210,6 @@ function presentarPregunta() {
         return;
     }
 
-    // Progreso dinámico elástico
     let porcentajeProgreso = Math.round((gameState.currentQuestionIndex / gameState.totalQuestions) * 100);
     document.getElementById('progress-text').textContent = `Progreso: ${porcentajeProgreso}%`;
     document.getElementById('progress-fill').style.width = `${porcentajeProgreso}%`;
@@ -254,15 +252,10 @@ function presentarPregunta() {
     }
 }
 
-// CORRECCIÓN TOTAL DE DISPARO DE CAPAS
 function dispararFeedbackFlash(esCorrecto) {
     const layerId = esCorrecto ? 'flash-correct' : 'flash-incorrect';
     const layer = document.getElementById(layerId);
-    
-    // Forzar render visible antes de la animación
     layer.classList.add('show-feedback');
-    
-    // Removerlo limpiamente después del efecto visual
     setTimeout(() => {
         layer.classList.remove('show-feedback');
     }, 900);
@@ -276,12 +269,12 @@ function procesarRespuesta(seleccion, elementoDom) {
         gameState.score++;
         elementoDom.classList.add('correct-flash');
         AudioSynth.play('correcto');
-        dispararFeedbackFlash(true); // Activa el Check ✅
+        dispararFeedbackFlash(true);
         playVoice('muy_bien');
     } else {
         elementoDom.classList.add('incorrect-flash');
         AudioSynth.play('incorrecto');
-        dispararFeedbackFlash(false); // Activa la X ❌
+        dispararFeedbackFlash(false);
         playVoice('intenta_otra_vez');
     }
 
@@ -328,6 +321,7 @@ function playVoice(filename) {
 function toggleConfig() {
     document.getElementById('modal-config').classList.toggle('hidden');
 }
+// Conmutador de Créditos integrado de forma segura
 function toggleCredits() {
     document.getElementById('modal-credits').classList.toggle('hidden');
 }
