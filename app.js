@@ -1,4 +1,4 @@
-// BANCO DE DATOS CONFIGURADO SEGÚN PARÁMETROS
+// BANCO DE DATOS EXACTO
 const BANCO_VOCALES = {
     A: {
         facil: ['abeja', 'aguila', 'ala', 'almohada', 'ambulancia', 'angel', 'anillo', 'araña', 'arbol', 'auto', 'avion'],
@@ -22,47 +22,107 @@ const BANCO_VOCALES = {
     }
 };
 
-// ESTADO DE LA APLICACIÓN
 let gameState = {
     playerName: "",
-    dificultad: "facil",
+    dificultad: "facil", // 'facil' o 'dificil'
     currentQuestionIndex: 0,
     totalQuestions: 10,
     score: 0,
-    playlist: [], // Almacenará los ítems estructurados de la partida actual
+    playlist: [],
     settings: { music: true, sfx: true, voice: true }
 };
 
-// INICIALIZADOR AL CARGAR LA PÁGINA
+// MOTOR DE AUDIO SINTETIZADO (Para los efectos controlados de fondo)
+const AudioSynth = {
+    ctx: null,
+    init() { if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+    play(type) {
+        this.init();
+        if(!gameState.settings.sfx) return;
+        try {
+            let osc = this.ctx.createOscillator();
+            let gain = this.ctx.createGain();
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            if(type === 'pop') {
+                osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.1);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.1);
+            } else if(type === 'correcto') {
+                osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); // C5
+                osc.frequency.setValueAtTime(659.25, this.ctx.currentTime + 0.1); // E5
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.3);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.3);
+            } else if(type === 'incorrecto') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(100, this.ctx.currentTime + 0.25);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.25);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.25);
+            }
+        } catch(e){}
+    }
+};
+
 window.addEventListener('DOMContentLoaded', () => {
     generarTecladoInfantil();
     cargarAjustesDeLocalStorage();
+    simularCargaSplash();
 });
 
-// GENERADOR DE TECLADO INTERNO NATIVO
+// SIMULACIÓN DE CARGA EN SPLASH DE ENTRADA
+function simularCargaSplash() {
+    let progreso = 0;
+    const fill = document.getElementById('loading-fill');
+    const text = document.getElementById('loading-text');
+    const btn = document.getElementById('btn-splash-start');
+
+    const intervalo = setInterval(() => {
+        progreso += Math.floor(Math.random() * 15) + 5;
+        if (progreso >= 100) {
+            progreso = 100;
+            clearInterval(intervalo);
+            if(text) text.textContent = "¡Listo para jugar! 🎉";
+            document.querySelector('.loading-wrapper').classList.add('hidden');
+            if(btn) btn.classList.remove('hidden');
+        }
+        if(fill) fill.style.width = `${progreso}%`;
+    }, 150);
+}
+
+// CORRECCIÓN TOTAL DEL PANTALLAZO BLANCO
+function iniciarDesdeSplash() {
+    AudioSynth.init();
+    document.getElementById('splash-screen').style.display = 'none';
+    
+    const welcomeScreen = document.getElementById('screen-welcome');
+    welcomeScreen.classList.add('active');
+    
+    document.body.style.background = varString('--bg-facil');
+    playVoice('hola');
+}
+
 function generarTecladoInfantil() {
     const keyboardContainer = document.getElementById('kid-keyboard');
     const alfabeto = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ".split("");
-    
     keyboardContainer.innerHTML = "";
     alfabeto.forEach(letra => {
         const btn = document.createElement('button');
-        btn.textContent = letra;
-        btn.className = "key-btn";
-        btn.onclick = () => { appendLetra(letra); playSFX('pop'); };
+        btn.textContent = letra; btn.className = "key-btn";
+        btn.onclick = () => { appendLetra(letra); AudioSynth.play('pop'); };
         keyboardContainer.appendChild(btn);
     });
-
-    // Botón de borrar integrado al diseño
     const btnDel = document.createElement('button');
-    btnDel.textContent = "⌫";
-    btnDel.className = "key-btn key-del";
-    btnDel.onclick = () => { borrarLetra(); playSFX('pop'); };
+    btnDel.textContent = "⌫"; btnDel.className = "key-btn key-del";
+    btnDel.onclick = () => { borrarLetra(); AudioSynth.play('pop'); };
     keyboardContainer.appendChild(btnDel);
 }
 
 function appendLetra(l) {
-    if (gameState.playerName.length < 12) {
+    if (gameState.playerName.length < 10) {
         gameState.playerName += l;
         document.getElementById('name-display').textContent = gameState.playerName;
         evaluarBotonInicio();
@@ -71,91 +131,66 @@ function appendLetra(l) {
 
 function borrarLetra() {
     gameState.playerName = gameState.playerName.slice(0, -1);
-    document.getElementById('name-display').textContent = gameState.playerName || "Escribe tu nombre...";
+    document.getElementById('name-display').textContent = gameState.playerName || "...";
     evaluarBotonInicio();
 }
 
 function evaluarBotonInicio() {
-    const btn = document.getElementById('btn-start');
-    if (gameState.playerName.trim().length >= 2) {
-        btn.classList.remove('locked');
-    } else {
-        btn.classList.add('locked');
-    }
+    document.getElementById('btn-start').classList.toggle('locked', gameState.playerName.trim().length < 2);
 }
 
-function setDificultad(dif) {
-    gameState.dificultad = dif;
-    document.getElementById('btn-dif-facil').classList.toggle('active', dif === 'facil');
-    document.getElementById('btn-dif-dificil').classList.toggle('active', dif === 'dificil');
-    playSFX('button');
+// CONTROL DEL SLIDER CON CAMBIO DINÁMICO DE COLOR DE FONDO
+function cambiarDificultadSlider(value) {
+    gameState.dificultad = (value == 0) ? "facil" : "dificil";
+    document.body.style.background = (value == 0) ? varString('--bg-facil') : varString('--bg-dificil');
+    AudioSynth.play('pop');
 }
+function varString(v) { return getComputedStyle(document.documentElement).getPropertyValue(v); }
 
-// GENERACIÓN DINÁMICA DE PARTIDAS (CERO MEMORIZACIÓN)
+// CONSTRUCCIÓN E INTERCAMBIO TOTAL DE RUTAS EN LOS MÓDULOS DE DIFICULTAD
 function construirPartida() {
     let poolCompleto = [];
     const vocales = ['A', 'E', 'I', 'O', 'U'];
 
-    // Unir elementos en base a la dificultad seleccionada
     vocales.forEach(v => {
         BANCO_VOCALES[v][gameState.dificultad].forEach(item => {
-            poolCompleto.push({ name: item, vowel: v });
+            poolCompleto.push({ name: item, vowel: v, pathFolder: gameState.dificultad });
         });
     });
 
-    // Mezclar aleatoriamente el pool general
     poolCompleto.sort(() => Math.random() - 0.5);
-
-    // Seleccionar de 10 a 12 preguntas por sesión dinámica para evitar fatiga cognitiva infantil
-    const totalPreguntasPartida = Math.min(12, poolCompleto.length);
+    const numPreguntas = 10; 
     gameState.playlist = [];
 
-    for (let i = 0; i < totalPreguntasPartida; i++) {
-        let itemActual = poolCompleto[i];
-        let modoPregunta = Math.random() > 0.5 ? 1 : 2; // Alternancia balanceada de mecánicas de juego
+    for (let i = 0; i < numPreguntas; i++) {
+        let itemActual = poolCompleto[i % poolCompleto.length];
+        let modoPregunta = Math.random() > 0.5 ? 1 : 2; 
 
         if (modoPregunta === 1) {
-            // MODO 1: ¿Con qué vocal empieza? -> 1 Imagen, 3 letras opciones
             let opcionesLetras = [itemActual.vowel];
             while (opcionesLetras.length < 3) {
                 let rVocal = vocales[Math.floor(Math.random() * 5)];
                 if (!opcionesLetras.includes(rVocal)) opcionesLetras.push(rVocal);
             }
             opcionesLetras.sort(() => Math.random() - 0.5);
-
-            gameState.playlist.push({
-                modo: 1,
-                target: itemActual,
-                options: opcionesLetras,
-                correct: itemActual.vowel
-            });
+            gameState.playlist.push({ modo: 1, target: itemActual, options: opcionesLetras, correct: itemActual.vowel });
         } else {
-            // MODO 2: ¿Cuál imagen empieza con X?
             let opcionesImagenes = [itemActual];
             while (opcionesImagenes.length < 3) {
                 let rItem = poolCompleto[Math.floor(Math.random() * poolCompleto.length)];
-                // Evitar repetir la misma vocal inicial o el mismo item gráfico
                 if (!opcionesImagenes.some(o => o.vowel === rItem.vowel) && rItem.name !== itemActual.name) {
                     opcionesImagenes.push(rItem);
                 }
             }
             opcionesImagenes.sort(() => Math.random() - 0.5);
-
-            gameState.playlist.push({
-                modo: 2,
-                target: itemActual, // La pista correcta es la vocal de itemActual
-                options: opcionesImagenes,
-                correct: itemActual.name
-            });
+            gameState.playlist.push({ modo: 2, target: itemActual, options: opcionesImagenes, correct: itemActual.name });
         }
     }
     gameState.totalQuestions = gameState.playlist.length;
 }
 
-// FLUJO DE JUEGO
 function iniciarJuego() {
     if (gameState.playerName.trim().length < 2) return;
-    
     construirPartida();
     gameState.currentQuestionIndex = 0;
     gameState.score = 0;
@@ -165,12 +200,10 @@ function iniciarJuego() {
     
     if(gameState.settings.music) {
         const bgM = document.getElementById('bg-music');
-        bgM.volume = 0.3;
-        bgM.play().catch(()=>{});
+        bgM.volume = 0.2; bgM.play().catch(()=>{});
     }
-
-    playVoice('bienvenido');
-    setTimeout(presentarPregunta, 1200);
+    playVoice('vamos_a_jugar');
+    setTimeout(presentarPregunta, 1000);
 }
 
 function presentarPregunta() {
@@ -179,9 +212,8 @@ function presentarPregunta() {
         return;
     }
 
-    // Actualizar barra e indicadores visuales
     document.getElementById('progress-text').textContent = `${gameState.currentQuestionIndex + 1} / ${gameState.totalQuestions}`;
-    document.getElementById('progress-fill').style.width = `${((gameState.currentQuestionIndex) / gameState.totalQuestions) * 100}%`;
+    document.getElementById('progress-fill').style.width = `${(gameState.currentQuestionIndex / gameState.totalQuestions) * 100}%`;
     document.getElementById('stars-count').textContent = gameState.score;
 
     const preguntaActual = gameState.playlist[gameState.currentQuestionIndex];
@@ -191,7 +223,8 @@ function presentarPregunta() {
         document.getElementById('mode-1-container').classList.remove('hidden');
         document.getElementById('mode-2-container').classList.add('hidden');
 
-        document.getElementById('m1-target-img').src = `assets/images/${preguntaActual.target.vowel}/${preguntaActual.target.name}.png`;
+        // URL CORREGIDA: /assets/images/Vocal/dificultad/nombre.png
+        document.getElementById('m1-target-img').src = `assets/images/${preguntaActual.target.vowel}/${preguntaActual.target.pathFolder}/${preguntaActual.target.name}.png`;
         
         const containerOpts = document.getElementById('m1-options');
         containerOpts.innerHTML = "";
@@ -202,9 +235,7 @@ function presentarPregunta() {
             btn.onclick = () => procesarRespuesta(vocal, btn);
             containerOpts.appendChild(btn);
         });
-
         playVoice('observa_la_imagen');
-
     } else {
         document.getElementById('game-question-text').textContent = `¿Cuál empieza con la letra "${preguntaActual.target.vowel}"?`;
         document.getElementById('mode-1-container').classList.add('hidden');
@@ -215,41 +246,31 @@ function presentarPregunta() {
         preguntaActual.options.forEach(item => {
             const div = document.createElement('div');
             div.className = "image-option animate-pop";
-            div.innerHTML = `<img src="assets/images/${item.vowel}/${item.name}.png" alt="opcion">`;
+            div.innerHTML = `<img src="assets/images/${item.vowel}/${item.pathFolder}/${item.name}.png" alt="opcion">`;
             div.onclick = () => procesarRespuesta(item.name, div);
             containerOpts.appendChild(div);
         });
-
         playVoice('toca_la_imagen_correcta');
     }
 }
 
 function procesarRespuesta(seleccion, elementoDom) {
     const preguntaActual = gameState.playlist[gameState.currentQuestionIndex];
-    // Deshabilitar clicks temporales para asegurar flujo ordenado
     document.querySelectorAll('.vowel-option, .image-option').forEach(el => el.style.pointerEvents = 'none');
 
     if (seleccion === preguntaActual.correct) {
         gameState.score++;
         elementoDom.classList.add('correct-flash');
-        playSFX('correcto');
-        
-        // Feedbacks aleatorios motivacionales nativos
-        const motivaciones = ['muy_bien', 'excelente', 'correcto', 'fantastico', 'eres_increible'];
-        const rVoz = motivaciones[Math.floor(Math.random() * motivaciones.length)];
-        setTimeout(() => playVoice(rVoz), 600);
-
+        AudioSynth.play('correcto');
+        playVoice('muy_bien');
     } else {
         elementoDom.classList.add('incorrect-flash');
-        playSFX('incorrecto');
-        
-        const reintentos = ['intenta_otra_vez', 'casi_lo_logras', 'piensa_con_calma'];
-        const rVoz = reintentos[Math.floor(Math.random() * reintentos.length)];
-        setTimeout(() => playVoice(rVoz), 600);
+        AudioSynth.play('incorrecto');
+        playVoice('intenta_otra_vez');
     }
 
     gameState.currentQuestionIndex++;
-    setTimeout(presentarPregunta, 2500);
+    setTimeout(presentarPregunta, 2000);
 }
 
 function finalizarJuego() {
@@ -257,34 +278,23 @@ function finalizarJuego() {
     document.getElementById('screen-reward').classList.add('active');
     document.getElementById('player-congrats-name').textContent = gameState.playerName;
 
-    // Renderizado dinámico de estrellas ganadas
     const starsContainer = document.getElementById('final-stars-container');
     starsContainer.innerHTML = "";
-    
-    let totalEstrellas = 1;
-    if(gameState.score === gameState.totalQuestions) totalEstrellas = 3;
-    else if(gameState.score >= gameState.totalQuestions / 2) totalEstrellas = 2;
+    let estrellas = gameState.score >= 8 ? 3 : (gameState.score >= 5 ? 2 : 1);
 
-    for(let i=0; i<totalEstrellas; i++) {
-        starsContainer.innerHTML += "<span style='font-size:3.5rem; margin:0 5px;'>⭐</span>";
+    for(let i=0; i<estrellas; i++) {
+        starsContainer.innerHTML += "<span style='font-size:3.5rem; margin:0 4px;'>⭐</span>";
     }
-
-    playSFX('confeti');
-    playVoice('lo_lograste');
+    playVoice('excelente');
 }
 
-function regresarAlMenu() {
+function siguienteNivelDinamico() {
     document.getElementById('screen-reward').classList.remove('active');
-    document.getElementById('screen-welcome').classList.add('active');
-    playSFX('sparkle');
-}
-
-// CONTROL DE RECURSOS DE AUDIO INTEGRADOS
-function playSFX(key) {
-    if (!gameState.settings.sfx) return;
-    // Usamos síntesis interna o hilos específicos si existieran archivos, o mapeo por canal de efectos
-    const player = document.getElementById('sfx-player');
-    // Mapeo controlado si cuentas con audios de efectos, alternativamente usamos feedback nativo visual seguro.
+    construirPartida();
+    gameState.currentQuestionIndex = 0;
+    gameState.score = 0;
+    document.getElementById('screen-game').classList.add('active');
+    presentarPregunta();
 }
 
 function playVoice(filename) {
@@ -294,28 +304,19 @@ function playVoice(filename) {
     voicePlayer.play().catch(()=>{});
 }
 
-// UTILIDADES Y MODALES DE CONFIGURACIÓN
 function toggleConfig() {
     document.getElementById('modal-config').classList.toggle('hidden');
-    playSFX('button');
 }
-
 function toggleCredits() {
     document.getElementById('modal-credits').classList.toggle('hidden');
-    playSFX('button');
 }
 
 function updateSettings() {
     gameState.settings.music = document.getElementById('cfg-music').checked;
     gameState.settings.sfx = document.getElementById('cfg-sfx').checked;
     gameState.settings.voice = document.getElementById('cfg-voice').checked;
-
     const bgM = document.getElementById('bg-music');
-    if (!gameState.settings.music) {
-        bgM.pause();
-    } else if (document.getElementById('screen-game').classList.contains('active')) {
-        bgM.play().catch(()=>{});
-    }
+    if(!gameState.settings.music) bgM.pause(); else if(document.getElementById('screen-game').classList.contains('active')) bgM.play().catch(()=>{});
     localStorage.setItem('silabin_vocal_settings', JSON.stringify(gameState.settings));
 }
 
@@ -332,16 +333,27 @@ function cargarAjustesDeLocalStorage() {
 function reiniciarProgreso() {
     localStorage.removeItem('silabin_vocal_settings');
     gameState.playerName = "";
-    document.getElementById('name-display').textContent = "Escribe tu nombre...";
+    document.getElementById('name-display').textContent = "...";
+    document.getElementById('difficulty-range').value = 0;
+    gameState.dificultad = "facil";
+    document.body.style.background = varString('--bg-facil');
     evaluarBotonInicio();
-    toggleConfig();
-    regresarAlMenu();
+    
+    document.getElementById('modal-config').classList.add('hidden');
+    document.getElementById('screen-game').classList.remove('active');
+    document.getElementById('screen-reward').classList.remove('active');
+    document.getElementById('screen-welcome').classList.add('active');
+    
+    const bgM = document.getElementById('bg-music');
+    bgM.pause(); bgM.currentTime = 0;
 }
 
 function toggleFullscreen() {
     if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(()=>{});
     } else {
-        document.exitFullscreen();
+        if (document.exitFullscreen) {
+            document.exitFullscreen().catch(()=>{});
+        }
     }
 }

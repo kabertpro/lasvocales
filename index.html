@@ -8,21 +8,39 @@
 </head>
 <body>
 
-    <section id="screen-welcome" class="screen active">
-        <div class="card-welcome animate-pop">
-            <h1>LAS 5 VOCALES</h1>
-            <p class="subtitle">Colección Silabín</p>
+    <div id="splash-screen" class="splash-layer">
+        <div class="splash-content animate-pop">
+            <h1 class="bounce-title">LAS 5 VOCALES</h1>
+            <p class="subtitle-splash">Colección Silabín</p>
+            <div class="splash-logo">✨ 🔤 ✨</div>
             
-            <div class="name-display" id="name-display">Escribe tu nombre...</div>
+            <div class="loading-wrapper">
+                <p id="loading-text">Cargando juegos...</p>
+                <div class="loading-bar"><div id="loading-fill"></div></div>
+            </div>
+
+            <button id="btn-splash-start" class="btn-main font-huge hidden" onclick="iniciarDesdeSplash()">¡TOCA PARA JUGAR! 🚀</button>
+            <p class="studio-tag">Kabert Studio - by LMKE</p>
+        </div>
+    </div>
+
+    <section id="screen-welcome" class="screen">
+        <div class="card-welcome animate-pop">
+            <h2>¡Escribe tu nombre!</h2>
+            <div class="name-display" id="name-display">...</div>
             
             <div class="kid-keyboard" id="kid-keyboard"></div>
             
-            <div class="setup-row">
-                <button id="btn-dif-facil" class="btn-toggle active" onclick="setDificultad('facil')">Fácil</button>
-                <button id="btn-dif-dificil" class="btn-toggle" onclick="setDificultad('dificil')">Difícil</button>
+            <div class="difficulty-slider-container">
+                <span class="slider-label">Dificultad:</span>
+                <div class="slider-wrapper">
+                    <span class="emoji-indicator left">👶 Fácil</span>
+                    <input type="range" id="difficulty-range" min="0" max="1" value="0" oninput="cambiarDificultadSlider(this.value)">
+                    <span class="emoji-indicator right">🧠 Difícil</span>
+                </div>
             </div>
 
-            <button id="btn-start" class="btn-main locked" onclick="iniciarJuego()">¡VAMOS A JUGAR! 🚀</button>
+            <button id="btn-start" class="btn-main locked" onclick="iniciarJuego()">¡VAMOS A JUGAR! 🎮</button>
         </div>
     </section>
 
@@ -39,7 +57,7 @@
         <main class="game-body">
             <h2 id="game-question-text" class="question-text">¿Con qué vocal empieza?</h2>
             
-            <div id="mode-1-container" class="game-layout">
+            <div id="mode-1-container" class="game-layout hidden">
                 <div class="main-image-frame">
                     <img id="m1-target-img" src="" alt="Pregunta">
                 </div>
@@ -54,10 +72,11 @@
 
     <section id="screen-reward" class="screen">
         <div class="card-reward animate-pop">
-            <h2>¡LO LOGRASTE, <span id="player-congrats-name"></span>!</h2>
+            <h2 class="congrats-title">¡EXCELENTE CONTINÚA, <span id="player-congrats-name"></span>!</h2>
+            <div class="trophy-room">🏆</div>
             <div class="final-stars" id="final-stars-container"></div>
-            <p id="reward-message">¡Eres increíble!</p>
-            <button class="btn-main" onclick="regresarAlMenu()">Jugar de Nuevo 🔄</button>
+            <p id="reward-message">¡Ganaste un trofeo por tu esfuerzo!</p>
+            <button class="btn-main" onclick="siguienteNivelDinamico()">CONTINUAR ➡️</button>
         </div>
     </section>
 
@@ -66,12 +85,12 @@
             <button class="btn-close" onclick="toggleConfig()">✖</button>
             <h3>Configuración</h3>
             <div class="config-grid">
-                <label>Música: <input type="checkbox" id="cfg-music" checked onchange="updateSettings()"></label>
-                <label>Efectos: <input type="checkbox" id="cfg-sfx" checked onchange="updateSettings()"></label>
-                <label>Voz: <input type="checkbox" id="cfg-voice" checked onchange="updateSettings()"></label>
-                <label>Pantalla Completa: <button onclick="toggleFullscreen()" class="btn-small">Conmutar</button></label>
+                <label>🎵 Música: <input type="checkbox" id="cfg-music" checked onchange="updateSettings()"></label>
+                <label>🔊 Efectos: <input type="checkbox" id="cfg-sfx" checked onchange="updateSettings()"></label>
+                <label>🗣️ Voz: <input type="checkbox" id="cfg-voice" checked onchange="updateSettings()"></label>
+                <label>🖥️ Pantalla Completa: <button onclick="toggleFullscreen()" class="btn-small">Conmutar 📺</button></label>
             </div>
-            <button class="btn-secondary" onclick="reiniciarProgreso()">Reiniciar Todo</button>
+            <button class="btn-secondary-reset" onclick="reiniciarProgreso()">Reiniciar Progreso 🔄</button>
         </div>
     </div>
 
@@ -92,7 +111,6 @@
 
     <audio id="bg-music" loop src="assets/audio/vamos_a_jugar.mp3"></audio>
     <audio id="voice-player"></audio>
-    <audio id="sfx-player"></audio>
 
     <script src="app.js"></script>
 </body>
