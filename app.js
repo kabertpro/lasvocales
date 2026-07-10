@@ -23,14 +23,19 @@ const BANCO_VOCALES = {
 
 let gameState = {
     playerName: "",
+    totalScore: 0,
+    esUsuarioExistente: false,
     dificultad: "facil", 
-    modoJuegoSeleccionado: "aleatorio", 
+    modoJuegoSeleccionado: "vocal", 
     currentQuestionIndex: 0,
     totalQuestions: 10,
     score: 0,
     playlist: [],
     settings: { music: true, sfx: true, voice: true }
 };
+
+const LS_USERS_KEY = 'silabin_vocal_users';
+const LS_CURRENT_USER_KEY = 'silabin_vocal_current_user';
 
 const AudioSynth = {
     ctx: null,
@@ -69,8 +74,77 @@ const AudioSynth = {
 window.addEventListener('DOMContentLoaded', () => {
     generarTecladoInfantil();
     cargarAjustesDeLocalStorage();
+    cargarUsuarioGuardado();
     simularCargaSplash();
 });
+
+/* ---------- Gestión de usuario guardado en el dispositivo ---------- */
+
+function obtenerUsuariosGuardados() {
+    try {
+        return JSON.parse(localStorage.getItem(LS_USERS_KEY)) || {};
+    } catch(e) { return {}; }
+}
+
+function guardarUsuariosGuardados(usuarios) {
+    localStorage.setItem(LS_USERS_KEY, JSON.stringify(usuarios));
+}
+
+function cargarUsuarioGuardado() {
+    const nombreActual = localStorage.getItem(LS_CURRENT_USER_KEY);
+    if (nombreActual) {
+        const usuarios = obtenerUsuariosGuardados();
+        gameState.playerName = nombreActual;
+        gameState.totalScore = usuarios[nombreActual] || 0;
+        gameState.esUsuarioExistente = true;
+        mostrarTarjetaUsuarioExistente();
+    } else {
+        mostrarTarjetaUsuarioNuevo();
+    }
+}
+
+function mostrarTarjetaUsuarioExistente() {
+    document.getElementById('user-info-card').classList.remove('hidden');
+    document.getElementById('new-user-card').classList.add('hidden');
+    document.getElementById('current-user-name-display').textContent = gameState.playerName;
+    document.getElementById('current-user-score-display').textContent = gameState.totalScore;
+    evaluarBotonInicio();
+}
+
+function mostrarTarjetaUsuarioNuevo() {
+    gameState.esUsuarioExistente = false;
+    document.getElementById('user-info-card').classList.add('hidden');
+    document.getElementById('new-user-card').classList.remove('hidden');
+    evaluarBotonInicio();
+}
+
+function cambiarUsuario() {
+    AudioSynth.play('pop');
+    localStorage.removeItem(LS_CURRENT_USER_KEY);
+    gameState.playerName = "";
+    gameState.totalScore = 0;
+    document.getElementById('name-display').textContent = "...";
+    mostrarTarjetaUsuarioNuevo();
+}
+
+function registrarOActualizarUsuarioActual() {
+    const nombre = gameState.playerName.trim();
+    const usuarios = obtenerUsuariosGuardados();
+    // Si el nombre ya existía guardado, recupera su puntuación; si es nuevo, arranca en 0.
+    gameState.totalScore = usuarios[nombre] !== undefined ? usuarios[nombre] : 0;
+    usuarios[nombre] = gameState.totalScore;
+    guardarUsuariosGuardados(usuarios);
+    localStorage.setItem(LS_CURRENT_USER_KEY, nombre);
+    gameState.playerName = nombre;
+    gameState.esUsuarioExistente = true;
+}
+
+function guardarPuntuacionUsuarioActual() {
+    if (!gameState.playerName) return;
+    const usuarios = obtenerUsuariosGuardados();
+    usuarios[gameState.playerName] = gameState.totalScore;
+    guardarUsuariosGuardados(usuarios);
+}
 
 function simularCargaSplash() {
     let progreso = 0;
@@ -134,6 +208,13 @@ function evaluarBotonInicio() {
     document.getElementById('btn-start').classList.toggle('locked', gameState.playerName.trim().length < 2);
 }
 
+function seleccionarModo(modo, elementoBtn) {
+    gameState.modoJuegoSeleccionado = modo;
+    document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('selected'));
+    elementoBtn.classList.add('selected');
+    AudioSynth.play('pop');
+}
+
 function cambiarDificultadSlider(value) {
     gameState.dificultad = (value == 0) ? "facil" : "dificil";
     document.body.style.background = (value == 0) ? varString('--bg-facil') : varString('--bg-dificil');
@@ -144,7 +225,6 @@ function varString(v) { return getComputedStyle(document.documentElement).getPro
 function construirPartida() {
     let poolCompleto = [];
     const vocales = ['A', 'E', 'I', 'O', 'U'];
-    gameState.modoJuegoSeleccionado = document.getElementById('game-mode-selector').value;
 
     vocales.forEach(v => {
         BANCO_VOCALES[v][gameState.dificultad].forEach(item => {
@@ -189,6 +269,9 @@ function construirPartida() {
 
 function iniciarJuego() {
     if (gameState.playerName.trim().length < 2) return;
+    if (!gameState.esUsuarioExistente) {
+        registrarOActualizarUsuarioActual();
+    }
     construirPartida();
     gameState.currentQuestionIndex = 0;
     gameState.score = 0;
@@ -286,6 +369,9 @@ function finalizarJuego() {
     document.getElementById('progress-text').textContent = `Progreso: 100%`;
     document.getElementById('progress-fill').style.width = `100%`;
 
+    gameState.totalScore += gameState.score;
+    guardarPuntuacionUsuarioActual();
+
     setTimeout(() => {
         document.getElementById('screen-game').classList.remove('active');
         document.getElementById('screen-reward').classList.add('active');
@@ -309,6 +395,34 @@ function siguienteNivelDinamico() {
     gameState.score = 0;
     document.getElementById('screen-game').classList.add('active');
     presentarPregunta();
+}
+
+/* ---------- Navegación a Home ---------- */
+
+function volverAHome() {
+    const bgM = document.getElementById('bg-music');
+    bgM.pause(); bgM.currentTime = 0;
+
+    document.getElementById('screen-game').classList.remove('active');
+    document.getElementById('screen-reward').classList.remove('active');
+    document.getElementById('screen-welcome').classList.add('active');
+
+    if (gameState.esUsuarioExistente) {
+        mostrarTarjetaUsuarioExistente();
+    }
+}
+
+function irAHomeDesdeRecompensa() {
+    AudioSynth.play('pop');
+    volverAHome();
+}
+
+function confirmarSalidaHome() {
+    const confirmado = confirm("¿Seguro que quieres salir? Perderás el progreso de esta partida (tu puntuación guardada no se pierde).");
+    if (confirmado) {
+        AudioSynth.play('pop');
+        volverAHome();
+    }
 }
 
 function playVoice(filename) {
@@ -346,20 +460,31 @@ function cargarAjustesDeLocalStorage() {
 }
 
 function reiniciarProgreso() {
+    const confirmado = confirm("Esto borrará los ajustes y cerrará la sesión del usuario actual. ¿Continuar?");
+    if (!confirmado) return;
+
     localStorage.removeItem('silabin_vocal_settings');
+    localStorage.removeItem(LS_CURRENT_USER_KEY);
+
     gameState.playerName = "";
+    gameState.totalScore = 0;
+    gameState.esUsuarioExistente = false;
     document.getElementById('name-display').textContent = "...";
     document.getElementById('difficulty-range').value = 0;
-    document.getElementById('game-mode-selector').value = "aleatorio";
+
+    document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('selected'));
+    document.querySelector('.mode-btn[data-mode="vocal"]').classList.add('selected');
+    gameState.modoJuegoSeleccionado = "vocal";
+
     gameState.dificultad = "facil";
     document.body.style.background = varString('--bg-facil');
-    evaluarBotonInicio();
-    
+    mostrarTarjetaUsuarioNuevo();
+
     document.getElementById('modal-config').classList.add('hidden');
     document.getElementById('screen-game').classList.remove('active');
     document.getElementById('screen-reward').classList.remove('active');
     document.getElementById('screen-welcome').classList.add('active');
-    
+
     const bgM = document.getElementById('bg-music');
     bgM.pause(); bgM.currentTime = 0;
 }

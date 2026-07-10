@@ -29,18 +29,36 @@
 
     <section id="screen-welcome" class="screen">
         <div class="card-welcome animate-pop">
-            <h2>¡Escribe tu nombre!</h2>
-            <div class="name-display" id="name-display">...</div>
-            
-            <div class="kid-keyboard" id="kid-keyboard"></div>
-            
+
+            <div id="user-info-card" class="user-info-card hidden">
+                <p class="welcome-back-text">¡Hola de nuevo!</p>
+                <div class="user-name-badge" id="current-user-name-display"></div>
+                <div class="user-score-badge">⭐ <span id="current-user-score-display">0</span> puntos</div>
+                <button class="btn-change-user" onclick="cambiarUsuario()">🔄 Cambiar de usuario</button>
+            </div>
+
+            <div id="new-user-card">
+                <h2>¡Escribe tu nombre!</h2>
+                <div class="name-display" id="name-display">...</div>
+                <div class="kid-keyboard" id="kid-keyboard"></div>
+            </div>
+
             <div class="selector-container-group">
                 <span class="control-label">🎯 Elige cómo jugar:</span>
-                <select id="game-mode-selector" class="select-infantil" onchange="AudioSynth.play('pop')">
-                    <option value="aleatorio">🔀 Modo Mezclado (Ambos)</option>
-                    <option value="vocal">🔤 Adivina la Vocal ("¿Con qué empieza?")</option>
-                    <option value="imagen">🖼️ Adivina la Imagen ("¿Cuál empieza con?")</option>
-                </select>
+                <div class="mode-buttons-group" id="mode-buttons-group">
+                    <button type="button" class="mode-btn selected" data-mode="vocal" onclick="seleccionarModo('vocal', this)">
+                        <span class="mode-icon">🔤</span>
+                        <span class="mode-text">¿Con qué vocal empieza?</span>
+                    </button>
+                    <button type="button" class="mode-btn" data-mode="imagen" onclick="seleccionarModo('imagen', this)">
+                        <span class="mode-icon">🖼️</span>
+                        <span class="mode-text">¿Cuál empieza con...?</span>
+                    </button>
+                    <button type="button" class="mode-btn" data-mode="aleatorio" onclick="seleccionarModo('aleatorio', this)">
+                        <span class="mode-icon">🔀</span>
+                        <span class="mode-text">Mezclado</span>
+                    </button>
+                </div>
             </div>
 
             <div class="difficulty-slider-container">
@@ -58,12 +76,18 @@
 
     <section id="screen-game" class="screen">
         <header class="game-header">
-            <button class="btn-icon" onclick="toggleConfig()">⚙️</button>
+            <div class="header-btn-group">
+                <button class="btn-icon" onclick="confirmarSalidaHome()" title="Salir / Home">🏠</button>
+                <button class="btn-icon" onclick="toggleFullscreen()" title="Pantalla Completa">⛶</button>
+            </div>
             <div class="progress-container">
                 <span id="progress-text">0% Completado</span>
                 <div class="progress-bar"><div id="progress-fill"></div></div>
             </div>
-            <div class="stars-counter">⭐ <span id="stars-count">0</span></div>
+            <div class="header-btn-group">
+                <div class="stars-counter">⭐ <span id="stars-count">0</span></div>
+                <button class="btn-icon" onclick="toggleConfig()">⚙️</button>
+            </div>
         </header>
 
         <main class="game-body">
@@ -88,7 +112,10 @@
             <div class="trophy-room">🏆</div>
             <div class="final-stars" id="final-stars-container"></div>
             <p id="reward-message">¡Tu esfuerzo te dio un hermoso trofeo!</p>
-            <button class="btn-main" onclick="siguienteNivelDinamico()">CONTINUAR ➡️</button>
+            <div class="reward-buttons-group">
+                <button class="btn-main" onclick="siguienteNivelDinamico()">CONTINUAR ➡️</button>
+                <button class="btn-secondary-home" onclick="irAHomeDesdeRecompensa()">🏠 HOME</button>
+            </div>
         </div>
     </section>
 
@@ -100,7 +127,6 @@
                 <label>🎵 Música: <input type="checkbox" id="cfg-music" checked onchange="updateSettings()"></label>
                 <label>🔊 Efectos: <input type="checkbox" id="cfg-sfx" checked onchange="updateSettings()"></label>
                 <label>🗣️ Voz: <input type="checkbox" id="cfg-voice" checked onchange="updateSettings()"></label>
-                <label>🖥️ Pantalla Completa: <button onclick="toggleFullscreen()" class="btn-small">Conmutar 📺</button></label>
             </div>
             <button class="btn-secondary-reset" onclick="reiniciarProgreso()">Reiniciar Progreso 🔄</button>
         </div>
